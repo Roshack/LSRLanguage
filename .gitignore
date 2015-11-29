@@ -26,3 +26,10 @@
 *.exe
 *.out
 *.app
+
+lsr
+
+lsr_bison.cpp
+lsr_flex.cpp
+lsr_bison.hpp
+*~
