@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include "gc/ggggc/gc.h"
 
 using namespace std;
 
@@ -25,11 +26,18 @@ typedef std::vector<LSRVarDecl*> VarList;
 class LSRValue {
 public:
     long long intVal;
-    LSRValue(long long iv) : intVal(iv) {}
+    std::string strVal;
+    std::string className;
+    int type;
+    LSRValue(long long iv);
     LSRValue(const LSRValue &v);
     LSRValue() : intVal(0) {}
-    long long getVal() const;
-    std::string toString();
+    LSRValue(std::string st);
+    long long getIntVal() const;
+    std::string getStrVal() const;
+    int isStr() const;
+    int isInt() const;
+    std::string toString() const;
 
 };
 
@@ -50,15 +58,16 @@ class LSRExpr : public Node {
 public:
     LSRValue val;
     LSRExpr(const LSRValue &v);
+    LSRExpr(const LSRExpr &expr);
+    LSRExpr(std::string st) : val(st) {}
     LSRExpr() : val(0) {}
     LSRValue getVal();
     std::string getString();
-    //LSRExpr operator+(const LSRExpr &rhs);
+    LSRExpr operator+(const LSRExpr &rhs);
 };
 
-LSRExpr operator+(const LSRExpr& lhs, const LSRExpr& rhs);
 
-class LSRVarDecl : public Node {
+class LSRVarDecl : public LSRStmt {
 
 };
 
@@ -73,6 +82,11 @@ class LSRInt : public LSRExpr {
 public:
     LSRInt(long long value);
     
+};
+
+class LSRStr : public LSRExpr {
+public:
+    LSRStr(std::string st);
 };
 
 
@@ -91,7 +105,7 @@ public:
     Scope(Scope *p);
     int isTopLevel();
     Scope *getParent();
-    void decl(std::string id);
+    void decl(std::string id, std::string type);
     void assign(std::string id, LSRValue val);
     LSRValue resolve(std::string id);
 

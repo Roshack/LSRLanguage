@@ -8,7 +8,8 @@ void yyerror(char *s) {
 
 Scope *curScope;
 LSRBlock *programBlock;
-
+std::string intStr = "int";
+std::string strStr = "str";
 %}
 
 
@@ -18,23 +19,25 @@ LSRBlock *programBlock;
     LSRVarDecl *var_decl;
     LSRIdent *ident;
     LSRBlock *block;
+    LSRStr *strlit;
     std::string *string;
     int token;
     int var;
 };
 
 
-%token <string> TID TINT
+%token <string> TID TINT TINTTYPE TSTRTYPE TSTRINGLIT
 %token <token> TEQUAL
 %token <token> TLPAREN TRPAREN TLBRACE TRBRACE
 %token <token> TPLUS TMINUS TMUL TDIV
 %token <token> TPRINT
-%token <token> TVOIDTYPE TINTTYPE TFNDEF TMAIN TSEMICOLON
+%token <token> TVOIDTYPE TFNDEF TMAIN TSEMICOLON TCLASS
 
-%type <expr> expr numeric
+%type <expr> expr numeric strliteral
 %type <stmt> stmt decl print assign
 %type <ident> ident
-%type <block> program maindef block
+%type <block> program maindef block //classdef classblock
+%type <string> vartype
 
 /* temp until symbol table shenanigans */
 %token ID
@@ -45,13 +48,29 @@ LSRBlock *programBlock;
 
 %%
 
-program: {Scope temp = Scope(NULL); curScope = &temp;} maindef {programBlock = $2;};
+program: {curScope = new Scope(NULL); /* ehhh no glboal scope? */} /*classdefs*/ maindef {programBlock = $2; delete curScope;};
+/*
+classdefs: classdef
+         | classdefs classdef
+         ;
 
+classdef: TCLASS ident classblock;
+
+classblock: TLBRACE cdecls TRBRACE;
+
+cdecls  : cdecl
+        | cdecls cdecl
+        ;
+
+cdecl   : vartype ident;
+*/
 maindef: TFNDEF TVOIDTYPE TMAIN TLPAREN TRPAREN block {$$ = $6;};
 
-vartype: TINTTYPE;
+vartype : TINTTYPE {$$ = &intStr;}
+        | TSTRTYPE {$$ = &strStr;}
+        ;
 
-block: {Scope temp = Scope(curScope); curScope = &temp;} TLBRACE stmts TRBRACE {curScope = curScope->getParent();};
+block: {curScope = new Scope(curScope);} TLBRACE stmts TRBRACE {Scope *temp = curScope; curScope = curScope->getParent(); delete temp;};
 
 stmts: stmt TSEMICOLON
      | stmts stmt TSEMICOLON
@@ -62,7 +81,13 @@ stmt: decl
     | assign
     ;
 
-decl: vartype ident {curScope->decl($2->getName());} ;
+decl: vartype ident {curScope->decl($2->getName(), *$1);}
+    | vartype ident TEQUAL expr 
+    {
+        curScope->decl($2->getName(), *$1);
+        curScope->assign($2->getName(), $4->getVal());
+    }    
+    ;
 
 assign: ident TEQUAL expr 
     { 
@@ -73,14 +98,14 @@ print: TPRINT TLPAREN expr TRPAREN {std::cout<< $3->getString()<<std::endl;};
 
 expr: ident   {$$ = new LSRExpr(curScope->resolve($1->getName())); }
     | numeric 
-    | expr TPLUS expr 
-    {
-        LSRExpr retval = *$1 + *$3; $$ = &retval;
-    }
+    | strliteral
+    | expr TPLUS expr {$$ = new LSRExpr(*$1 + *$3);}
     | TLPAREN expr TRPAREN {$$ = $2;}
     ;
 
 numeric : TINT { $$ = new LSRInt(atol($1->c_str())); delete $1; } ;
+
+strliteral: TSTRINGLIT { $$ = new LSRStr(*$1); delete $1; } ;
 
 ident : TID { $$ = new LSRIdent(*$1); delete $1; }
 

@@ -13,8 +13,10 @@ extern "C" int yywrap() { }
 "print"                 return TOKEN(TPRINT);
 "fn"                    return TOKEN(TFNDEF);
 "int"                   return TOKEN(TINTTYPE);
+"str"                   return TOKEN(TSTRTYPE);
 "void"                  return TOKEN(TVOIDTYPE);
 "main"                  return TOKEN(TMAIN);
+"class"                 return TOKEN(TCLASS);
 [a-zA-Z_][a-zA-Z0-9_]*  SAVE_TOKEN; return TID;
 [0-9]+                  SAVE_TOKEN; return TINT;
 "="                     return TOKEN(TEQUAL);
@@ -27,6 +29,7 @@ extern "C" int yywrap() { }
 "{"                     return TOKEN(TLBRACE);
 "}"                     return TOKEN(TRBRACE);
 ";"                     return TOKEN(TSEMICOLON);
+L?\"(\\.|[^\\"])*\"	    SAVE_TOKEN; return TSTRINGLIT;
 
 
 .                       printf("Unknown token!n"); yyterminate();
