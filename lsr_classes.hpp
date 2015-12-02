@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 #include <sstream>
-#include "gc/ggggc/gc.h"
 
 using namespace std;
 
