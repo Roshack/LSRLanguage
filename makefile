@@ -3,7 +3,8 @@ CC = g++
 all: lsr
 
 lsr: lsr_bison.cpp lsr_flex.cpp lsr_classes.cpp lsr_main.cpp
-	g++ -o lsr lsr_bison.cpp lsr_flex.cpp lsr_classes.cpp lsr_main.cpp
+	g++ -c lsr_main.cpp -o lsr_main.o
+	g++ lsr_main.o lsr_bison.cpp lsr_flex.cpp lsr_classes.cpp gc/libggggc.a -lm -o lsr
 
 lsr_bison.cpp: lsr_bison.y
 	bison -d -o lsr_bison.cpp lsr_bison.y

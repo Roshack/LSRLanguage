@@ -29,6 +29,7 @@ extern "C" int yywrap() { }
 "{"                     return TOKEN(TLBRACE);
 "}"                     return TOKEN(TRBRACE);
 ";"                     return TOKEN(TSEMICOLON);
+"."                     return TOKEN(TDOT);
 L?\"(\\.|[^\\"])*\"	    SAVE_TOKEN; return TSTRINGLIT;
 
 

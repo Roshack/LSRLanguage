@@ -3,7 +3,9 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <set>
 #include <sstream>
+#include "gc/ggggc/gc.h"
 
 using namespace std;
 
@@ -28,15 +30,20 @@ public:
     std::string strVal;
     std::string className;
     int type;
+    void * objPtr;
     LSRValue(long long iv);
     LSRValue(const LSRValue &v);
     LSRValue() : intVal(0) {}
-    LSRValue(std::string st);
+    LSRValue(std::string st, int size);
+    LSRValue(std::string className);
+    void createInMemory(void *classD);
     long long getIntVal() const;
     std::string getStrVal() const;
     int isStr() const;
     int isInt() const;
+    int isClass() const;
     std::string toString() const;
+    std::string getType();
 
 };
 
@@ -77,6 +84,15 @@ public:
     std::string getName();
 };
 
+class LSRMemberAccess : public LSRExpr {
+public:
+    std::string parent;
+    std::string child;
+    LSRMemberAccess(const std::string& p, const std::string& c);
+    std::string getParent();
+    std::string getChild();
+};
+
 class LSRInt : public LSRExpr {
 public:
     LSRInt(long long value);
@@ -95,7 +111,12 @@ public:
     int contains(std::string id);
     void add(std::string id, LSRValue val);
     void set(std::string id, LSRValue val);
+    void * descriptorPointer;
+    void setDescriptorPointer();
     LSRValue get(std::string id);
+    long unsigned int getIndex(std::string member);
+    std::string getMemberType(std::string member);
+    void * getDescriptorPointer();
 };
 
 
@@ -104,8 +125,9 @@ public:
     Scope(Scope *p);
     int isTopLevel();
     Scope *getParent();
-    void decl(std::string id, std::string type);
-    void assign(std::string id, LSRValue val);
+    void decl(std::string id, std::string type, void *classDefs);
+    void assign(std::string id, LSRValue val, void *classDefs);
+    void memberAssign(std::string parent, std::string child, LSRValue val,void *classDefs);
     LSRValue resolve(std::string id);
 
 private:
@@ -113,7 +135,19 @@ private:
     SymbolTable st;
 };
 
-LSRExpr LSRAdd(LSRExpr lhs, LSRExpr rhs);
+class LSRClassTable {
+public:
+    std::map<std::string, SymbolTable> classDefs;
+    void add(std::string className);
+    int contains(std::string className);
+    void addVar(std::string className,std::string varName, std::string type);
+    void setDescriptorPointer(std::string className);
+    void* getDescriptorPointer(std::string className);
+    long unsigned int getOffset(std::string classname, std::string membername);
+    std::string getType(std::string classname, std::string member);
+};
+
+LSRValue getInitializedVal(std::string type);
 
 
 #endif
