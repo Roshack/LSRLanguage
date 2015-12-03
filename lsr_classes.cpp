@@ -20,6 +20,7 @@ LSRValue::LSRValue(const LSRValue &v) {
     strVal = v.strVal;
     className = v.className;
     type = v.type;
+    objPtr = v.objPtr;
 }
 LSRValue::LSRValue(long long iv) {
     intVal = iv;
@@ -56,11 +57,15 @@ int LSRValue::isClass() const {
     return type ==2;
 }
 
-void LSRValue::createInMemory(void *classD) {
+void * LSRValue::getObjectPointer() {
+    return objPtr;
+}
+
+void * LSRValue::createInMemory(void *classD) {
     LSRClassTable * classDefs = (LSRClassTable *) classD;
     if (!classDefs->contains(className)) {
         std::cout << "Trying to malloc non-existant class " << className << " This should never happen" <<std::endl;
-        return;
+        return NULL;
     }
     void * desc = classDefs->getDescriptorPointer(className);
     objPtr = NULL;
@@ -69,7 +74,8 @@ void LSRValue::createInMemory(void *classD) {
     std::cout <<" gonna do some mallocing with desc pointer " << desc << std::endl;
     
     objPtr = ggggc_malloc((struct GGGGC_Descriptor *) desc);
-    std::cout <<"Done that mallocing" << std::endl;
+    std::cout <<"Done that mallocing object located at " << objPtr << std::endl;
+    return objPtr;
 }
 
 std::string LSRValue::getType() {
@@ -114,12 +120,11 @@ void Scope::decl(std::string id, std::string type,void *classDefs) {
     } else {
         LSRValue v = getInitializedVal(type);
         std::cout << "gonna try and create in memory" << std::endl;
-        if(v.isClass()) {
-            v.createInMemory(classDefs);
-        }
         std::cout << "finished creating in memory" << std::endl;
         st.add(id,v);
-        
+        if(v.isClass()) {
+            st.createInMemory(id,classDefs);
+        }
     }
 }
 
@@ -148,8 +153,11 @@ void Scope::memberAssign(std::string parent, std::string child, LSRValue val,voi
         }
         ggc_size_t * objectPointer = (ggc_size_t *)v.objPtr;
         objectPointer = objectPointer + offSet;
+        std::cout << "Offset of " << parent << "." << child << " was: " <<offSet << "  going to write at location" << objectPointer << std::endl;
         if (val.isInt()) {
+            std::cout << " assigning value of " << (ggc_size_t) val.getIntVal() << std::endl;
             (*objectPointer) = (ggc_size_t) val.getIntVal();
+            std::cout << " value at " << objectPointer << " is now " << *objectPointer << std::endl;
         }
         // TODO: Add string and object setting
     }
@@ -162,6 +170,35 @@ LSRValue Scope::resolve(std::string id) {
         return parent->resolve(id);
     } else {
         std::cout << "UndefinedIDError: ID " << id << " has not been declared in this scope." << std::endl;
+        return LSRValue(0);
+    }
+}
+
+LSRValue Scope::resolveMembers(void * ma, void * ct) {
+    LSRMemberAccess * access = (LSRMemberAccess*) ma;
+    if (st.contains(access->getParent())) {
+        LSRValue val = st.get(access->getParent());
+        if (!val.isClass()) {
+            std::cout <<"Trying to member access variable: " << access->getParent() << " that is of type " << val.getType() << std::endl;
+            return LSRValue (0);
+        } else {
+            LSRClassTable * classTable = (LSRClassTable*) ct;
+            std::string className = val.getType();
+            std::string memberType = classTable->getType(access->getParent(),access->getChild());
+            long unsigned int offSet = classTable->getOffset(className,access->getChild());
+            ggc_size_t * objPointer = (ggc_size_t*) val.objPtr;
+            objPointer = objPointer + offSet;
+            std::cout << "Offset of " <<access->getParent() << "." << access->getChild() << " was: " <<offSet << "  going to read at location" << objPointer << std::endl;
+            if (!memberType.compare("int")) {
+                std::cout << objPointer[0] << std::endl;
+                return LSRValue(*(objPointer));
+            }
+            //TODO: stuff other than ints
+        }
+    } else if (!isTopLevel()) {
+        return parent->resolveMembers(ma,ct);
+    } else {
+        std::cout << "UndefinedIDError: ID " << access->getParent() << " has not been declared in this scope." << std::endl;
         return LSRValue(0);
     }
 }
@@ -230,6 +267,13 @@ void * SymbolTable::getDescriptorPointer() {
     return descriptorPointer;
 }
 
+void * SymbolTable::createInMemory(std::string id,void * classDefs) {
+    LSRValue v = symMap[id];
+    symMap[id].objPtr = v.createInMemory(classDefs);
+    std::cout << symMap[id].objPtr << " straight fomr symmap" << std::endl;
+    return symMap[id].objPtr;
+}
+
 std::string LSRIdent::getName() {
     return name;
 }
@@ -254,6 +298,7 @@ LSRExpr::LSRExpr(const LSRValue &v){
 LSRExpr::LSRExpr(const LSRExpr &expr) {
     val = expr.val;
 }
+
 
 LSRExpr LSRExpr::operator+(const LSRExpr &rhs) {
     LSRValue retval;

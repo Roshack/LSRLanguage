@@ -92,7 +92,7 @@ stmt: decl
     | assign
     ;
 
-decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);}
+decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);std::cout << "resolved obj pointer: " <<curScope->resolve($2->getName()).getObjectPointer() << std::endl;}
     | vartype ident TEQUAL expr 
     {
         curScope->decl($2->getName(), *$1, (void *)classes);
@@ -107,7 +107,7 @@ assign: ident TEQUAL expr { curScope->assign($1->getName(), $3->getVal(),(void *
 print: TPRINT TLPAREN expr TRPAREN {std::cout<< $3->getString()<<std::endl;};
 
 expr: ident   {$$ = new LSRExpr(curScope->resolve($1->getName())); }
-    | memberaccess
+    | memberaccess {$$ = new LSRExpr(curScope->resolveMembers((void*) $1,(void *) classes));}
     | numeric 
     | strliteral
     | expr TPLUS expr {$$ = new LSRExpr(*$1 + *$3);}

@@ -36,7 +36,7 @@ public:
     LSRValue() : intVal(0) {}
     LSRValue(std::string st, int size);
     LSRValue(std::string className);
-    void createInMemory(void *classD);
+    void *createInMemory(void *classD);
     long long getIntVal() const;
     std::string getStrVal() const;
     int isStr() const;
@@ -44,6 +44,7 @@ public:
     int isClass() const;
     std::string toString() const;
     std::string getType();
+    void * getObjectPointer();
 
 };
 
@@ -116,6 +117,7 @@ public:
     LSRValue get(std::string id);
     long unsigned int getIndex(std::string member);
     std::string getMemberType(std::string member);
+    void * createInMemory(std::string id,void * classDefs);
     void * getDescriptorPointer();
 };
 
@@ -128,6 +130,7 @@ public:
     void decl(std::string id, std::string type, void *classDefs);
     void assign(std::string id, LSRValue val, void *classDefs);
     void memberAssign(std::string parent, std::string child, LSRValue val,void *classDefs);
+    LSRValue resolveMembers(void * ma, void * ct);
     LSRValue resolve(std::string id);
 
 private:
