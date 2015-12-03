@@ -22,7 +22,7 @@ LSRValue::LSRValue(const LSRValue &v) {
     type = v.type;
     objPtr = v.objPtr;
 }
-LSRValue::LSRValue(long long iv) {
+LSRValue::LSRValue(ggc_size_t iv) {
     intVal = iv;
     type = 0; // 0 is int.
 }
@@ -39,7 +39,7 @@ LSRValue::LSRValue(std::string cName) {
     type = 2;
 }
 
-long long LSRValue::getIntVal() const {
+ggc_size_t LSRValue::getIntVal() const {
     return intVal;
 }
 
@@ -64,17 +64,12 @@ void * LSRValue::getObjectPointer() {
 void * LSRValue::createInMemory(void *classD) {
     LSRClassTable * classDefs = (LSRClassTable *) classD;
     if (!classDefs->contains(className)) {
-        std::cout << "Trying to malloc non-existant class " << className << " This should never happen" <<std::endl;
         return NULL;
     }
     void * desc = classDefs->getDescriptorPointer(className);
     objPtr = NULL;
-    std::cout <<"Gonna try and do some pushing..." <<std::endl;
     GGC_PUSH_1(objPtr);    
-    std::cout <<" gonna do some mallocing with desc pointer " << desc << std::endl;
-    
     objPtr = ggggc_malloc((struct GGGGC_Descriptor *) desc);
-    std::cout <<"Done that mallocing object located at " << objPtr << std::endl;
     return objPtr;
 }
 
@@ -119,8 +114,6 @@ void Scope::decl(std::string id, std::string type,void *classDefs) {
         std::cout << "RepeatIDError: ID " << id << " has already been declared in this scope." << std::endl;
     } else {
         LSRValue v = getInitializedVal(type);
-        std::cout << "gonna try and create in memory" << std::endl;
-        std::cout << "finished creating in memory" << std::endl;
         st.add(id,v);
         if(v.isClass()) {
             st.createInMemory(id,classDefs);
@@ -153,11 +146,8 @@ void Scope::memberAssign(std::string parent, std::string child, LSRValue val,voi
         }
         ggc_size_t * objectPointer = (ggc_size_t *)v.objPtr;
         objectPointer = objectPointer + offSet;
-        std::cout << "Offset of " << parent << "." << child << " was: " <<offSet << "  going to write at location" << objectPointer << std::endl;
         if (val.isInt()) {
-            std::cout << " assigning value of " << (ggc_size_t) val.getIntVal() << std::endl;
             (*objectPointer) = (ggc_size_t) val.getIntVal();
-            std::cout << " value at " << objectPointer << " is now " << *objectPointer << std::endl;
         }
         // TODO: Add string and object setting
     }
@@ -184,14 +174,12 @@ LSRValue Scope::resolveMembers(void * ma, void * ct) {
         } else {
             LSRClassTable * classTable = (LSRClassTable*) ct;
             std::string className = val.getType();
-            std::string memberType = classTable->getType(access->getParent(),access->getChild());
+            std::string memberType = classTable->getType(className,access->getChild());
             long unsigned int offSet = classTable->getOffset(className,access->getChild());
             ggc_size_t * objPointer = (ggc_size_t*) val.objPtr;
-            objPointer = objPointer + offSet;
-            std::cout << "Offset of " <<access->getParent() << "." << access->getChild() << " was: " <<offSet << "  going to read at location" << objPointer << std::endl;
             if (!memberType.compare("int")) {
-                std::cout << objPointer[0] << std::endl;
-                return LSRValue(*(objPointer));
+
+                return LSRValue(objPointer[offSet]);
             }
             //TODO: stuff other than ints
         }
@@ -270,7 +258,6 @@ void * SymbolTable::getDescriptorPointer() {
 void * SymbolTable::createInMemory(std::string id,void * classDefs) {
     LSRValue v = symMap[id];
     symMap[id].objPtr = v.createInMemory(classDefs);
-    std::cout << symMap[id].objPtr << " straight fomr symmap" << std::endl;
     return symMap[id].objPtr;
 }
 
@@ -329,7 +316,7 @@ std::string LSRExpr::getString() {
     return val.toString();
 }
 
-LSRInt::LSRInt(long long value) {
+LSRInt::LSRInt(ggc_size_t value) {
     val = LSRValue(value);
 }
 
@@ -337,7 +324,7 @@ LSRStr::LSRStr(std::string st) {
     std::string strVal = st;
     strVal.erase(0,1);
     strVal.erase(strVal.size()-1);
-    val = LSRValue(strVal);
+    val = LSRValue(strVal, strVal.size());
 }
 
 int LSRClassTable::contains(std::string className) {

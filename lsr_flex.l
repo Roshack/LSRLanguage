@@ -11,6 +11,7 @@ extern "C" int yywrap() { }
 
 [ tn]                 ;
 "print"                 return TOKEN(TPRINT);
+"println"               return TOKEN(TPRINTLN);
 "fn"                    return TOKEN(TFNDEF);
 "int"                   return TOKEN(TINTTYPE);
 "str"                   return TOKEN(TSTRTYPE);
@@ -31,6 +32,7 @@ extern "C" int yywrap() { }
 ";"                     return TOKEN(TSEMICOLON);
 "."                     return TOKEN(TDOT);
 L?\"(\\.|[^\\"])*\"	    SAVE_TOKEN; return TSTRINGLIT;
+\n
 
 
 .                       printf("Unknown token!n"); yyterminate();

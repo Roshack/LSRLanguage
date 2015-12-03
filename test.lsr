@@ -1,6 +1,19 @@
+class T { int x; int y;}
+
 fn void main() {
-    int x;
-    x = 5;
-    print(x);
-    print(2);
+    T z;
+    z.x = 5;
+    print(z.x + 2);
+    println(" = 7");
+    print(z.x);
+    println(" = 5");
+    T q;
+    q.x = 12;
+    print(z.x);
+    println(" = 5");
+    z.y = 10;
+    print(z.y);
+    println(" = 10");
+    print(q.x);
+    println(" = 12");
 }

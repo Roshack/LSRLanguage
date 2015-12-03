@@ -34,7 +34,7 @@ std::string currentClass = "";
 %token <token> TEQUAL
 %token <token> TLPAREN TRPAREN TLBRACE TRBRACE
 %token <token> TPLUS TMINUS TMUL TDIV
-%token <token> TPRINT
+%token <token> TPRINT TPRINTLN
 %token <token> TVOIDTYPE TFNDEF TMAIN TSEMICOLON TCLASS TDOT
 
 %type <expr> expr numeric strliteral
@@ -57,6 +57,7 @@ program: {curScope = new Scope(NULL); classes = new LSRClassTable();} classdefs 
 
 classdefs: classdef
          | classdefs classdef
+         |
          ;
 
 classdef: TCLASS ident {classes->add($2->getName()); currentClass = $2->getName();} classblock 
@@ -92,7 +93,7 @@ stmt: decl
     | assign
     ;
 
-decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);std::cout << "resolved obj pointer: " <<curScope->resolve($2->getName()).getObjectPointer() << std::endl;}
+decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);}
     | vartype ident TEQUAL expr 
     {
         curScope->decl($2->getName(), *$1, (void *)classes);
@@ -101,16 +102,21 @@ decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);std::co
     ;
 
 assign: ident TEQUAL expr { curScope->assign($1->getName(), $3->getVal(),(void *)classes);}
-      | memberaccess TEQUAL expr {curScope->memberAssign($1->getParent(),$1->getChild(), $3->getVal(), (void *)classes);}
+      | memberaccess TEQUAL expr 
+        {
+            curScope->memberAssign($1->getParent(),$1->getChild(), $3->getVal(), (void *)classes);
+        }
       ;
 
-print: TPRINT TLPAREN expr TRPAREN {std::cout<< $3->getString()<<std::endl;};
+print: TPRINT TLPAREN expr TRPAREN {std::cout<< $3->getString();}
+     | TPRINTLN TLPAREN expr TRPAREN {std::cout<< $3->getString() <<std::endl;}
+     ;
 
 expr: ident   {$$ = new LSRExpr(curScope->resolve($1->getName())); }
     | memberaccess {$$ = new LSRExpr(curScope->resolveMembers((void*) $1,(void *) classes));}
     | numeric 
     | strliteral
-    | expr TPLUS expr {$$ = new LSRExpr(*$1 + *$3);}
+    | expr TPLUS expr {$$ = new LSRExpr(*$1 + *$3); delete $1; delete $3;}
     | TLPAREN expr TRPAREN {$$ = $2;}
     ;
 
@@ -120,7 +126,12 @@ strliteral: TSTRINGLIT { $$ = new LSRStr(*$1); delete $1; } ;
 
 ident : TID { $$ = new LSRIdent(*$1); delete $1; }
 
-memberaccess : ident TDOT ident {$$ = new LSRMemberAccess($1->getName(), $3->getName());};
+memberaccess : ident TDOT ident 
+             {
+                $$ = new LSRMemberAccess($1->getName(), $3->getName());
+                delete $1; 
+                delete $3;
+             };
 
 
 

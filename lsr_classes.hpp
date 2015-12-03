@@ -26,18 +26,18 @@ typedef std::vector<LSRVarDecl*> VarList;
 
 class LSRValue {
 public:
-    long long intVal;
+    ggc_size_t intVal;
     std::string strVal;
     std::string className;
     int type;
     void * objPtr;
-    LSRValue(long long iv);
+    LSRValue(ggc_size_t iv);
     LSRValue(const LSRValue &v);
     LSRValue() : intVal(0) {}
     LSRValue(std::string st, int size);
     LSRValue(std::string className);
     void *createInMemory(void *classD);
-    long long getIntVal() const;
+    ggc_size_t getIntVal() const;
     std::string getStrVal() const;
     int isStr() const;
     int isInt() const;
@@ -96,7 +96,7 @@ public:
 
 class LSRInt : public LSRExpr {
 public:
-    LSRInt(long long value);
+    LSRInt(ggc_size_t value);
     
 };
 
