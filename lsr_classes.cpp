@@ -517,6 +517,7 @@ nodeValue intNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunction
 
 nodeValue whileNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
     // A cond node when executed returns an LSRValue with an intval of 1 if true, 0 if false.;
+    scope = new Scope(scope);
     while (cond.execute(scope,classDefs,functions).intVal) {
         StmtList::iterator it = stmts.begin();
         while(it != stmts.end()) {
@@ -524,6 +525,9 @@ nodeValue whileNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFuncti
             it++;
         }
     }
+    Scope *temp = scope;
+    scope = scope->getParent();
+    delete temp;
     return nodeValue(0);
 }
 
