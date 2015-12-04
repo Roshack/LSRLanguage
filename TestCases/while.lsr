@@ -1,11 +1,14 @@
+class T {int x; int y;}
+
 fn void main() {
-    int x = 0;
+    T z;
+    z.x = 0;
     str a = " ";
     str b = "";
     str c = "Should have printed 1 through 5.";
-    while(x < 5) {
-        x = x+1;
-        print(x);
+    while(z.x < 5) {
+        z.x = z.x+1;
+        print(z.x);
         print(a);
     };
     println(b);   

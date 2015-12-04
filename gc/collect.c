@@ -127,6 +127,7 @@ void * forward(void * from)
 
     }
     memcpy(toRef,fromRef,sizeof(ggc_size_t)*descriptor->size);
+    //printf("moving object at %lx to %lx\r\n", lui fromRef, lui toRef);
     fromRef->descriptor__ptr = (struct GGGGC_Descriptor *) ( ((ggc_size_t) toRef) | 1L);
     StackLL_Push(toRef);
     return(toRef);  
@@ -188,7 +189,7 @@ int ggggc_yield()
         //printf("going to collect\r\n");
         ggggc_collect();
         ggggc_forceCollect = 0;    
-       //printf("Done collecting\r\n");
+        //printf("Done collecting\r\n");
     }
     return 0;
 }

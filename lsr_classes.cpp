@@ -467,7 +467,8 @@ nodeValue condNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctio
     return ret;
 }
 
-nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+
+nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){  
     LSRValue v = scope->resolve(varName);
     nodeValue ret = nodeValue();
     // TODO: add for not just ints.
@@ -482,6 +483,24 @@ nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunction
     ret.varName = varName;
     return ret;
 
+}
+
+nodeValue memberNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    LSRMemberAccess *  ma = new LSRMemberAccess(varName,memberName);    
+    LSRValue v = scope->resolveMembers((void*) ma, (void *) classDefs);
+    nodeValue ret = nodeValue();
+    if (!v.getType().compare("int")) {
+        ret = nodeValue(v.intVal);
+        ret.type = NVINT;
+    } else if (!v.getType().compare("str")) {
+        ret.st = v.getStrVal();
+        ret.strLen = 0;
+        ret.type = NVSTR;
+    }
+    ret.varName = varName;
+    ret.memberName = memberName;
+    delete ma;
+    return ret;
 }
 
 nodeValue assignNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
@@ -509,26 +528,42 @@ nodeValue printNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFuncti
     return nodeValue(0);
 }
 
+nodeValue declNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    nodeValue ret = nodeValue(0);
+    scope->decl(varName, type, (void *) classDefs);
+    ret.varName = varName;
+    ret.type = NVVAR;
+    return ret;
+}
+
 nodeValue intNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions) {
     nodeValue v = nodeValue(intVal);
     v.type=NVINT;
-    return nodeValue(intVal);;
+    return nodeValue(intVal);
 }
 
 nodeValue whileNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
     // A cond node when executed returns an LSRValue with an intval of 1 if true, 0 if false.;
-    scope = new Scope(scope);
     while (cond.execute(scope,classDefs,functions).intVal) {
+        scope = new Scope(scope);
         StmtList::iterator it = stmts.begin();
         while(it != stmts.end()) {
             (*it)->execute(scope,classDefs,functions);
             it++;
         }
+        Scope *temp = scope;
+        scope = scope->getParent();
+        delete temp;
     }
-    Scope *temp = scope;
-    scope = scope->getParent();
-    delete temp;
     return nodeValue(0);
+}
+
+whileNode::~whileNode() {
+    while (!stmts.empty()) {
+        stmtNode *p = stmts.back();
+        stmts.pop_back();
+        delete p;
+    }
 }
 
 

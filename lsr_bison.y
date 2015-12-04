@@ -49,8 +49,8 @@ std::string currentClass = "";
 %type <member> memberaccess
 %type <block> program maindef block
 %type <string> vartype
-%type <stmtnode> deferstmt deferprint deferassign while
-%type <exprnode> cond deferexpr deferident defernumeric
+%type <stmtnode> deferstmt deferprint deferassign while deferdecl
+%type <exprnode> cond deferexpr deferident defernumeric defermemberaccess
 %type <stmtlist> deferblock deferstmts
 
 
@@ -89,7 +89,7 @@ maindef: TFNDEF TVOIDTYPE TMAIN TLPAREN TRPAREN block {$$ = $6;};
 
 vartype : TINTTYPE {$$ = &intStr;}
         | TSTRTYPE {$$ = &strStr;}
-        | ident    {std::string temp = $1->getName(); $$ = &temp;};
+        | ident    {std::string temp = $1->getName(); $$ = new std::string(temp);};
         ;
 
 block: {curScope = new Scope(curScope);} TLBRACE stmts TRBRACE {Scope *temp = curScope; curScope = curScope->getParent(); delete temp;};
@@ -140,25 +140,44 @@ cond: deferexpr TLT deferexpr {$$= new condNode(*$1, LT_OP, *$3);};
 deferblock: TLBRACE deferstmts TRBRACE {$$ = $2;};
 
 deferstmts: deferstmt TSEMICOLON {$$ = new StmtList(); $$->push_back($<stmtnode>1);}
-          | deferstmts deferstmt TSEMICOLON {$1->push_back($<stmtnode>2);}
+          | deferstmts deferstmt TSEMICOLON {$1->push_back($<stmtnode>2); }
           ;
 
 deferstmt: deferprint {$$ = $1;}
-         | deferassign {$$ = $1;;}
+         | deferassign {$$ = $1;}
+         | deferdecl {$$ = $1;}
          ;
 
 deferprint: TPRINT TLPAREN deferexpr TRPAREN {$$ = new printNode(*$3,0); /*delete $3;*/}
           | TPRINTLN TLPAREN deferexpr TRPAREN {$$ = new printNode(*$3,1); /*delete $3;*/}
           ;
 
-deferassign: deferident TEQUAL deferexpr {$$ = new assignNode(*$1,*$3);/* delete $1; delete $3;*/};
+deferassign : deferident TEQUAL deferexpr {$$ = new assignNode(*$1,*$3);}
+            | defermemberaccess TEQUAL deferexpr {$$ = new assignNode(*$1,*$3);}
+            ;
+
+deferdecl   : vartype ident 
+            {std::string vname = $2->getName(); $$ = new declNode(vname, *$1); 
+             std::cout << "varname is " << vname << std::endl;
+             std::cout << "type is " << *$1 <<std::endl;
+            };
 
 deferexpr: deferident {$$ = $1;}
+         | defermemberaccess {$$ = $1;}
          | defernumeric {$$ = $1;}
          | deferexpr TPLUS deferexpr {$$ = new binaryExprNode(*$1, PLUS_OP, *$3); /*delete $1; delete $3;*/}
          ;
 
 deferident : TID {$$ = new varNode(*$1); /*delete $1;*/};
+
+defermemberaccess : ident TDOT ident 
+                    {
+                        // as I understand it I can (and should) use idents and not
+                        // deferidents here because i just need the strings the actaul
+                        // deferred work will be in the defered member access.
+                        $$ = new memberNode($1->getName(), $3->getName());
+                        delete $1; delete $3;
+                    }
 
 defernumeric : TINT {$$ = new intNode(atol($1->c_str())); /*delete $1;*/}; 
 

@@ -1,0 +1,14 @@
+class T {int x; int y;}
+
+fn void main() {
+    int x;
+    x = 0;
+    str a = "lol";
+    T b;
+    println("starting while");
+    while(x < 10000000) {
+        T z;
+        T y;
+        x = x+1;
+    };
+}

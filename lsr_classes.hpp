@@ -285,9 +285,9 @@ public:
 
 class declNode : public stmtNode {
 public:
-    exprNode& lhs;
-    exprNode& rhs;
-    declNode(exprNode& lhs, exprNode& rhs) : lhs(lhs), rhs(rhs) {}
+    std::string varName;
+    std::string type;
+    declNode(std::string& v,  std::string& t) : varName(v), type(t) {}
     nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
 };
 
@@ -312,6 +312,7 @@ public:
     exprNode& cond;
     StmtList stmts;
     whileNode(exprNode& c) : cond(c) {}
+    ~whileNode();
     nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
 };
 
