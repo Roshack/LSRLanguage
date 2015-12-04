@@ -1,24 +1,63 @@
-Two primitives: ints and strings
 
-How to define objects:
+
+
+***************
+Object Definition
+***************
 class <classname> { <varType> <varName>; }
 
-Classes cannot contain strings! This is because I ran out of time and was not able to change them to char arrays and really I only want them in the language so I can print out useful information like what a value should equal. Shrug.
+Vartypes for classes: int, classnames. Strings not allowed in classes!
 
-How to define variables:
-<varType> <varName>;
-where vartype is either int, str, or a classname!
 
-how to define functions:
-fn <type> <name>() {
+***************
+function definition
+***************
+fn <fntype> <name>() {
     <stmts>
 }
 
-how to define main!
+<fntype> can be void or int.
 
+***************
+Main definition
+***************
 fn void main() {
     <statements>
 }
 
+**********
+STATEMENTS
+**********
 
-statements:
+    Declaration:
+    -----------------------
+    <varType> <varName>;
+    <varType> <varName> = <expr>;
+    -----------------------
+
+    print:
+    -----------------------
+    print(<expr>); (Prints the expression without new line).
+    println(<expr>); (prints the expr with a new line).
+    -----------------------
+
+    assign: *Note all objects are references so if you do a = b then b.lhs = 5 a.lhs will also now be 5
+    ------------------------
+    <varName> = <expr>;
+    <varName>.<member> = <expr>; (if <varName> is an object).
+    ------------------------
+
+    while:
+    -----------------------
+    while(<condition>) {
+        <stmts>
+    };
+    -----------------------
+
+
+**********
+CONDITIONS
+**********
+<expr> conditionalOp <expr>
+Allowed conditional operators: <
+

@@ -72,6 +72,16 @@ public:
     void addPtr(std::string v, void * x) { 
         ptrs[v] = x;
     }
+    void setPtr(std::string v, void *x) {
+        std::map<std::string, void*>::iterator search = ptrs.find(v);
+        if (search != ptrs.end()) {
+            ptrs[v] = x;
+        } else if (parent != NULL) {
+            return parent->setPtr(v,x);
+        } else {
+            return;
+        }
+    }
     void * resolve(std::string id) {
        std::map<std::string, void*>::iterator search = ptrs.find(id);
         if (search != ptrs.end()) {

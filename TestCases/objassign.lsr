@@ -1,0 +1,21 @@
+class T{ int lhs; int rhs;}
+
+fn void main() {
+    T a;
+    a.lhs = 5;
+    a.rhs = 10;
+    T z;
+    z.lhs = 1;
+    z.rhs = 1;
+    z = a;
+    print(z.lhs);
+    println(" = 5");
+    print(z.rhs);
+    println(" = 10");
+    z.lhs = 2;
+    print(a.lhs);
+    println(" = 2 because all objects are references.");
+    T q = a;
+    print(q.lhs);
+    println(" = 2");
+}

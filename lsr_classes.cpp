@@ -146,6 +146,9 @@ void Scope::decl(std::string id, std::string type,void *classDefs) {
 
 void Scope::assign(std::string id, LSRValue val,void *classDefs) {
     if (st.contains(id)) {
+        if(val.isClass()) {
+            (*ptrScope)->setPtr(id,val.getObjectPointer());
+        }
         st.set(id,val);
     } else if (!isTopLevel()) {
         parent->assign(id,val,classDefs);
