@@ -18,12 +18,15 @@ extern "C" int yywrap() { }
 "void"                  return TOKEN(TVOIDTYPE);
 "main"                  return TOKEN(TMAIN);
 "class"                 return TOKEN(TCLASS);
+"while"                 return TOKEN(TWHILE);
 [a-zA-Z_][a-zA-Z0-9_]*  SAVE_TOKEN; return TID;
 [0-9]+                  SAVE_TOKEN; return TINT;
 "="                     return TOKEN(TEQUAL);
 "+"                     return TOKEN(TPLUS);
 "-"                     return TOKEN(TMINUS);
 "*"                     return TOKEN(TMUL);
+"<"                     return TOKEN(TLT);
+">"                     return TOKEN(TGT);
 "/"                     return TOKEN(TDIV);
 "("                     return TOKEN(TLPAREN);
 ")"                     return TOKEN(TRPAREN);
@@ -33,7 +36,7 @@ extern "C" int yywrap() { }
 "."                     return TOKEN(TDOT);
 L?\"(\\.|[^\\"])*\"	    SAVE_TOKEN; return TSTRINGLIT;
 \n
-
+\t 
 
 .                       printf("Unknown token!n"); yyterminate();
 

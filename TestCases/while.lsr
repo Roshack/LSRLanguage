@@ -1,0 +1,13 @@
+fn void main() {
+    int x = 0;
+    str a = " ";
+    str b = "";
+    str c = "Should have printed 1 through 5.";
+    while(x < 5) {
+        x = x+1;
+        print(x);
+        print(a);
+    };
+    println(b);   
+    println(c);
+}

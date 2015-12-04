@@ -19,6 +19,6 @@ $ cd LSRLanguage
 $ ./buildLSR
 
 # Running
-Since it's an interpreter it just reads from stdin, this can be ugly as any print statements you write will print thie result out immediately, to pass in files for example the test.lsr file you just do
+Since it's an interpreter it just reads from stdin, this can be ugly as any print statements you write will print the result out immediately, to pass in files for example the test.lsr file you just do
 
 ./lsr < test.lsr

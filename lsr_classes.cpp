@@ -83,6 +83,17 @@ std::string LSRValue::getType() {
     }
 }
 
+int LSRValue::operator<(const LSRValue &rhs) {
+    // TODO: add maybe for non int vals
+    if (this->isInt() && rhs.isInt()) {
+        if (this->intVal < rhs.getIntVal()) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+}
+
 
 LSRValue getInitializedVal(std::string type) {
     LSRValue v = LSRValue(0);
@@ -385,4 +396,137 @@ std::string LSRClassTable::getType(std::string classname, std::string member) {
     }
     return ret;
 }
+
+/*
+*
+*
+*       DEFERRAL STUFF PAST HERE.
+*       THIS IS STUFF FOR FNS, WHILE LOOPS, ETC.
+*       SHOULD HAVE DONE IT THIS WAY FOR EVERYTHING BUT
+*       FORGOT HOW TO WRITE AN INTERPRETER TIL NOW
+*
+*
+*/
+
+
+int nodeValue::operator<(const nodeValue &rhs) {
+    // TODO: add for more than ints maybe?
+    if (this->intVal < rhs.intVal) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+nodeValue nodeValue::operator+(const nodeValue &rhs) {
+    //TODO: add for more than intsm atybye?
+    return nodeValue(this->intVal + rhs.intVal);
+}
+
+LSRValue nodeValue::toVal(Scope * scope, LSRClassTable * classDefs) {
+    if (type==NVINT) {
+        return LSRValue(intVal);
+    } else if (type==NVSTR) {
+        return (LSRValue(st,strLen));
+    } else if (type==NVVAR) {
+        return scope->resolve(varName);
+    } else if (type==NVMEMB) {
+        LSRMemberAccess m = LSRMemberAccess(varName,memberName);
+        return scope->resolveMembers((void *) (&m), (void *) classDefs);
+    }
+}
+
+nodeValue binaryExprNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    nodeValue ret = nodeValue();
+    switch(op) {
+    //TODO: implement other operators
+    case PLUS_OP:
+        ret = lhs.execute(scope,classDefs,functions) + rhs.execute(scope,classDefs,functions);
+        ret.type = NVINT;
+        break;
+    }
+    return ret;
+}
+
+
+
+nodeValue condNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    nodeValue ret = nodeValue();    
+    nodeValue l = lhs.execute(scope,classDefs,functions);
+    nodeValue r = rhs.execute(scope,classDefs,functions);
+    switch (op) {
+    //TODO: implement other operators.
+    case LT_OP:
+        if (l < r) {
+            ret.intVal = 1;
+        } else {
+            ret.intVal = 0;
+        }
+        break;
+    }
+    return ret;
+}
+
+nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    LSRValue v = scope->resolve(varName);
+    nodeValue ret = nodeValue();
+    // TODO: add for not just ints.
+    if (!v.getType().compare("int")) {
+        ret = nodeValue(v.intVal);
+        ret.type = NVINT;
+    } else if (!v.getType().compare("str")) {
+        ret.st = v.getStrVal();
+        ret.strLen = 0;
+        ret.type = NVSTR;
+    }
+    ret.varName = varName;
+    return ret;
+
+}
+
+nodeValue assignNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    nodeValue l = lhs.execute(scope, classDefs,functions);
+    nodeValue r = rhs.execute(scope,classDefs,functions);  
+    if (lhs.isLValue()) {
+        if (lhs.isMember()) {         
+            scope->memberAssign(l.varName,l.memberName,r.toVal(scope,classDefs),(void *) classDefs);
+        } else {
+            scope->assign(l.varName,r.toVal(scope,classDefs),(void *) classDefs);
+        }
+    } else {
+        return nodeValue(0);
+    }
+    return nodeValue(0);
+}
+
+nodeValue printNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    nodeValue temp = expr.execute(scope,classDefs,functions);
+    LSRValue val = temp.toVal(scope,classDefs);  
+    std::cout << val.toString();
+    if(printLine) {
+        std::cout << std::endl;
+    }
+    return nodeValue(0);
+}
+
+nodeValue intNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions) {
+    nodeValue v = nodeValue(intVal);
+    v.type=NVINT;
+    return nodeValue(intVal);;
+}
+
+nodeValue whileNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
+    // A cond node when executed returns an LSRValue with an intval of 1 if true, 0 if false.;
+    while (cond.execute(scope,classDefs,functions).intVal) {
+        StmtList::iterator it = stmts.begin();
+        while(it != stmts.end()) {
+            (*it)->execute(scope,classDefs,functions);
+            it++;
+        }
+    }
+    return nodeValue(0);
+}
+
+
+
 

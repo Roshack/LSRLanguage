@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <list>
 #include "gc/ggggc/gc.h"
 
 using namespace std;
@@ -17,11 +18,41 @@ class SymbolTable;
 class LSRBlock;
 class LSRIdent;
 class LSRInt;
+class deferNode;
+class stmtNode;
+class whileNode;
+class condNode;
+class exprNode;
+class declNode;
+class varNode;
+class memberNode;
+class printNode;
+class assignNode;
+class LSRFunctionTable;
+class LSRClassTable;
+class Scope;
+class nodeValue;
 
 class Scope;
-typedef std::vector<LSRStmt*> StmtList;
-typedef std::vector<LSRExpr*> ExprList;
-typedef std::vector<LSRVarDecl*> VarList;
+typedef std::vector<stmtNode*> StmtList;
+typedef std::vector<exprNode*> ExprList;
+typedef std::vector<declNode*> VarList;
+
+enum BinaryOp {
+PLUS_OP,
+MINUS_OP,
+MOD_OP,
+MUL_OP,
+DIV_OP
+};
+
+enum CondOp {
+LT_OP,
+LEQ_OP,
+EQ_OP,
+GT_OP,
+GEQ_OP
+};
 
 
 class LSRValue {
@@ -45,6 +76,7 @@ public:
     std::string toString() const;
     std::string getType();
     void * getObjectPointer();
+    int operator<(const LSRValue &rhs);
 
 };
 
@@ -150,7 +182,140 @@ public:
     std::string getType(std::string classname, std::string member);
 };
 
-LSRValue getInitializedVal(std::string type);
+class LSRFunctionTable {
+
+};
+
+/*
+*
+*
+*       DEFERRAL STUFF PAST HERE.
+*       THIS IS STUFF FOR FNS, WHILE LOOPS, ETC.
+*       SHOULD HAVE DONE IT THIS WAY FOR EVERYTHING BUT
+*       FORGOT HOW TO WRITE AN INTERPRETER TIL NOW
+*
+*
+*/
+
+enum nodeValueType{
+NVINT,
+NVSTR,
+NVVAR,
+NVMEMB
+};
+
+class nodeValue {
+public:
+    std::string varName;
+    std::string memberName;
+    ggc_size_t intVal;
+    ggc_size_t objPtr;
+    std::string st;
+    int strLen;
+    nodeValueType type;
+    int operator<(const nodeValue &rhs);
+    nodeValue operator+(const nodeValue &rhs);
+    nodeValue() {}
+    nodeValue(ggc_size_t x) : intVal(x) {}
+    LSRValue toVal(Scope * scope, LSRClassTable * classDefs);
+    ~nodeValue() {}
+};
+
+class deferNode {
+public:
+    virtual ~deferNode() {}
+    virtual nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions) {};
+};
+
+class exprNode : public deferNode {
+public:
+    virtual int isLValue() {return 0;}
+    virtual int isMember() {return 0;}
+};
+
+class stmtNode : public deferNode {
+
+};
+
+
+class binaryExprNode : public exprNode {
+public:
+    BinaryOp op;
+    exprNode& lhs;
+    exprNode& rhs;
+    binaryExprNode(exprNode& lhs, BinaryOp op, exprNode& rhs) : lhs(lhs), rhs(rhs), op(op) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class condNode : public exprNode {
+public:
+    CondOp op;
+    exprNode& lhs;
+    exprNode& rhs;
+    condNode(exprNode& lhs, CondOp op, exprNode& rhs) : lhs(lhs), rhs(rhs), op(op) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+
+class varNode : public exprNode {
+public:
+    std::string varName;
+    int isLValue() {return 1;}
+    int isMember() {return 0;}
+    varNode(std::string v) : varName(v) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class memberNode : public exprNode {
+public:
+    std::string varName;
+    std::string memberName;
+    int isLValue() {return 1;}
+    int isMember() {return 1;}
+    memberNode(std::string v, std::string m) : varName(v), memberName(m) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class intNode : public exprNode {
+public:
+    ggc_size_t intVal;
+    intNode(ggc_size_t x) : intVal(x) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class declNode : public stmtNode {
+public:
+    exprNode& lhs;
+    exprNode& rhs;
+    declNode(exprNode& lhs, exprNode& rhs) : lhs(lhs), rhs(rhs) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class assignNode : public stmtNode {
+public:
+    exprNode& lhs;
+    exprNode& rhs;
+    assignNode(exprNode& lhs, exprNode& rhs) : lhs(lhs), rhs(rhs) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class printNode : public stmtNode {
+public:
+    exprNode& expr;
+    int printLine;
+    printNode(exprNode& e, int p) : expr(e), printLine(p) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class whileNode : public stmtNode {
+public:
+    exprNode& cond;
+    StmtList stmts;
+    whileNode(exprNode& c) : cond(c) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+LSRValue getInitializedVal(std::string type);;
 
 
 #endif
