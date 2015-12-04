@@ -1,0 +1,36 @@
+class T {int x; int y;}
+
+fn void main() {
+    T b;
+    int x;
+    x = 0;
+    str a = "lol";
+    b.x = 12;
+    b.y = 50;
+    println(b.x);
+    println(b.y);
+    println("starting while");
+    while(x < 2) {
+        T z;
+        T y;
+        z.x = 50;
+        z.y = 20;
+        int q;
+        q = 0;
+        print(z.x);
+        println( " = 50");
+        print(z.y);
+        println( " = 20");
+        while (q < 1000000) {
+            T b;
+            q = q + 1;
+        };
+        print(z.x);
+        println( " = 50");
+        print(z.y);
+        println( " = 20");
+        x = x+1;
+    };
+    println(b.x);
+    println(b.y);
+}

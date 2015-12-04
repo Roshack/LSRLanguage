@@ -1,4 +1,4 @@
-CC=gcc
+CC=g++
 ECFLAGS=-O3 -g
 CFLAGS=-D_XOPEN_SOURCE=600 -I. $(ECFLAGS)
 AR=ar

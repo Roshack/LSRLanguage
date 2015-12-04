@@ -73,6 +73,8 @@ extern "C" {
 
 #endif
 
+extern void * lastAllocated;
+
 /* pools which are freely available */
 static struct GGGGC_Pool *freePoolsHead, *freePoolsTail;
 

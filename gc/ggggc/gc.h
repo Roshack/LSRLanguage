@@ -15,7 +15,9 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
+#include <vector>
+#include <iostream>
+#include <map>
 #ifndef GGGGC_GC_H
 #define GGGGC_GC_H 1
 
@@ -60,7 +62,31 @@ typedef size_t ggc_size_t;
 #define GGGGC_EMPTY
 
 
+class LSRScope {
+public:
+    LSRScope(LSRScope *p) {
+        parent = p;   
+    }   
+    LSRScope * parent;
+    LSRScope * getParent() { return parent;}
+    void addPtr(std::string v, void * x) { 
+        ptrs[v] = x;
+    }
+    void * resolve(std::string id) {
+       std::map<std::string, void*>::iterator search = ptrs.find(id);
+        if (search != ptrs.end()) {
+            return ptrs[id];
+        } else if (parent != NULL) {
+            return parent->resolve(id);
+        } else {
+            return NULL;
+        }
+    }
+    std::map<std::string, void *> ptrs;
+};
+
 extern int ggggc_forceCollect;
+
 
 // Check if an object has already been moved
 long unsigned int alreadyMoved(void * x);
@@ -77,6 +103,8 @@ void * cleanForwardAddress(void * x);
 
 // Process objects
 void ggggc_process(void * x);
+
+void setLSRScope(LSRScope **s);
 
 
 /* GC pool (forms a list) */

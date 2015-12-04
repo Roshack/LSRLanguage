@@ -1,0 +1,14 @@
+fn void main() {
+
+int x = 0;
+while (x < 5) {
+    int y;
+    y = 0;
+    while( y < 5) {
+        println(y);
+        y = y +1;
+    };
+    x = x+1;
+};
+
+}

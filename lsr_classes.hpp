@@ -55,6 +55,15 @@ GEQ_OP
 };
 
 
+struct stackSim {
+    stackSim * next;
+    void * val;
+};
+
+void cleanStackSim(stackSim * x);
+
+
+
 class LSRValue {
 public:
     ggc_size_t intVal;
@@ -156,6 +165,7 @@ public:
 
 class Scope {
 public:
+    LSRScope ** ptrScope;
     Scope(Scope *p);
     int isTopLevel();
     Scope *getParent();
@@ -209,7 +219,7 @@ public:
     std::string varName;
     std::string memberName;
     ggc_size_t intVal;
-    ggc_size_t objPtr;
+    void *objPtr;
     std::string st;
     int strLen;
     nodeValueType type;
@@ -280,6 +290,13 @@ class intNode : public exprNode {
 public:
     ggc_size_t intVal;
     intNode(ggc_size_t x) : intVal(x) {}
+    nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
+};
+
+class strNode : public exprNode {
+public:
+    std::string strVal;
+    strNode(std::string& s);
     nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
 };
 

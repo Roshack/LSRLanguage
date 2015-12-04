@@ -1,0 +1,24 @@
+Two primitives: ints and strings
+
+How to define objects:
+class <classname> { <varType> <varName>; }
+
+Classes cannot contain strings! This is because I ran out of time and was not able to change them to char arrays and really I only want them in the language so I can print out useful information like what a value should equal. Shrug.
+
+How to define variables:
+<varType> <varName>;
+where vartype is either int, str, or a classname!
+
+how to define functions:
+fn <type> <name>() {
+    <stmts>
+}
+
+how to define main!
+
+fn void main() {
+    <statements>
+}
+
+
+statements:

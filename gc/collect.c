@@ -28,6 +28,13 @@
 extern "C" {
 #endif
 
+
+extern LSRScope ** lsrScope;
+
+void setLSRScope(LSRScope **s) {
+    lsrScope = s;
+}
+
 struct StackLL 
 {
     void *data;
@@ -45,10 +52,10 @@ void StackLL_Init()
 
 void StackLL_Push(void *x)
 {
-    struct StackLL *new = (struct StackLL *)malloc(sizeof(struct StackLL));
-    new->data = x;
-    new->next = markStack;
-    markStack = new;
+    struct StackLL *temp = (struct StackLL *)malloc(sizeof(struct StackLL));
+    temp->data = x;
+    temp->next = markStack;
+    markStack = temp;
 }
 
 void * StackLL_Pop()
@@ -91,10 +98,23 @@ void ggggc_collect()
         ggc_size_t *** ptrptr = (ggc_size_t ***) stack_iter->pointers;
         ggc_size_t ptrIter = 0;
         while (ptrIter < stack_iter->size) {
-            ggggc_process((void *) ptrptr[ptrIter]);        
+            ggggc_process((void *) ptrptr[ptrIter]);
+            //printf("Found a root @ %lx\r\n", lui ptrptr[ptrIter]);
+            struct GGGGC_Header * obj = *((struct GGGGC_Header **) ptrptr[ptrIter]);
+            //printf("its value is %lx\r\n", lui obj);
             ptrIter++;               
         }
         stack_iter = stack_iter->next;
+    }
+    LSRScope * scopeIter = (*lsrScope);
+    while (scopeIter != NULL) {
+        std::map<std::string,void *> ptrs = (*lsrScope)->ptrs;
+        std::map<std::string,void *>::iterator iter = ptrs.begin();
+        while (iter != ptrs.end()) {
+            ggggc_process(&(iter->second));
+            iter++;
+        }
+        scopeIter = scopeIter->getParent();
     }
     void * workIter = StackLL_Pop();
     while (workIter) {
@@ -127,7 +147,6 @@ void * forward(void * from)
 
     }
     memcpy(toRef,fromRef,sizeof(ggc_size_t)*descriptor->size);
-    //printf("moving object at %lx to %lx\r\n", lui fromRef, lui toRef);
     fromRef->descriptor__ptr = (struct GGGGC_Descriptor *) ( ((ggc_size_t) toRef) | 1L);
     StackLL_Push(toRef);
     return(toRef);  
@@ -161,7 +180,7 @@ void scan(void *x) {
     }
     //printf("x is %lx\r\n", lui x);
     if (alreadyMoved(x)) {
-        ref = cleanForwardAddress(x);
+        ref = (struct GGGGC_Header *)cleanForwardAddress(x);
     }
     struct GGGGC_Descriptor * desc = ref->descriptor__ptr;
     //printf("x desc is %lx\r\n", lui desc);

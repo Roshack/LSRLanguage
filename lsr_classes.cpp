@@ -2,6 +2,14 @@
 
 
 
+void cleanStackSim(stackSim * x) {
+    while (x->next != NULL) {
+        stackSim * temp = x->next->next;
+        delete x->next;
+        x->next = temp;
+    }
+}
+
 std::string LSRValue::toString() const {
     if (isInt()) {
         std::stringstream ss;
@@ -110,6 +118,9 @@ LSRValue getInitializedVal(std::string type) {
 
 Scope::Scope(Scope *p) {
     parent = p;
+    if (parent) {
+        ptrScope = parent->ptrScope;
+    }
 }
 
 int Scope::isTopLevel() {
@@ -127,7 +138,8 @@ void Scope::decl(std::string id, std::string type,void *classDefs) {
         LSRValue v = getInitializedVal(type);
         st.add(id,v);
         if(v.isClass()) {
-            st.createInMemory(id,classDefs);
+            void * x = st.createInMemory(id,classDefs);
+            (*ptrScope)->addPtr(id,x);
         }
     }
 }
@@ -166,7 +178,11 @@ void Scope::memberAssign(std::string parent, std::string child, LSRValue val,voi
 
 LSRValue Scope::resolve(std::string id) {
     if (st.contains(id)) {
-        return st.get(id);
+        LSRValue v = st.get(id);
+        if (v.isClass()) {
+            v.objPtr = (*ptrScope)->resolve(id);
+        }
+        return v;
     } else if (!isTopLevel()) {
         return parent->resolve(id);
     } else {
@@ -187,9 +203,9 @@ LSRValue Scope::resolveMembers(void * ma, void * ct) {
             std::string className = val.getType();
             std::string memberType = classTable->getType(className,access->getChild());
             long unsigned int offSet = classTable->getOffset(className,access->getChild());
-            ggc_size_t * objPointer = (ggc_size_t*) val.objPtr;
+            ggc_size_t * objPointer = (ggc_size_t*) (*ptrScope)->resolve(access->getParent());
             if (!memberType.compare("int")) {
-
+                
                 return LSRValue(objPointer[offSet]);
             }
             //TODO: stuff other than ints
@@ -218,7 +234,7 @@ void SymbolTable::set(std::string id, LSRValue val) {
 }
 
 void SymbolTable::setDescriptorPointer() {
-    ggc_size_t size = 0; 
+    ggc_size_t size = 1; 
     ggc_size_t pointers = 0;
     std::map<std::string, LSRValue>::iterator iter = symMap.begin();
     while (iter != symMap.end()) {
@@ -433,6 +449,10 @@ LSRValue nodeValue::toVal(Scope * scope, LSRClassTable * classDefs) {
     } else if (type==NVMEMB) {
         LSRMemberAccess m = LSRMemberAccess(varName,memberName);
         return scope->resolveMembers((void *) (&m), (void *) classDefs);
+    } else {
+        std::cout <<"type not defined for nodevalue" << std::endl;
+        std::cout <<"type is " << type << std::endl;
+        return LSRValue(0);
     }
 }
 
@@ -479,6 +499,10 @@ nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunction
         ret.st = v.getStrVal();
         ret.strLen = 0;
         ret.type = NVSTR;
+    } else {
+        ret.objPtr = v.getObjectPointer();
+        ret.varName = varName;
+        ret.type = NVVAR;
     }
     ret.varName = varName;
     return ret;
@@ -539,20 +563,37 @@ nodeValue declNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctio
 nodeValue intNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions) {
     nodeValue v = nodeValue(intVal);
     v.type=NVINT;
-    return nodeValue(intVal);
+    return v;
+}
+
+strNode::strNode(std::string &s) {
+    LSRStr st = LSRStr(s);
+    strVal = st.getString();
+}
+
+nodeValue strNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions) {
+    nodeValue v = nodeValue(0);
+    v.type=NVSTR;
+    v.st = strVal;
+    v.strLen = 0;
+    return v;
 }
 
 nodeValue whileNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
     // A cond node when executed returns an LSRValue with an intval of 1 if true, 0 if false.;
     while (cond.execute(scope,classDefs,functions).intVal) {
         scope = new Scope(scope);
+        *(scope->ptrScope) = new LSRScope(*(scope->ptrScope));
         StmtList::iterator it = stmts.begin();
         while(it != stmts.end()) {
             (*it)->execute(scope,classDefs,functions);
             it++;
         }
         Scope *temp = scope;
+        LSRScope * t = (*scope->ptrScope);
         scope = scope->getParent();
+        *(scope->ptrScope) = (*(scope->ptrScope))->getParent();
+        delete t;
         delete temp;
     }
     return nodeValue(0);

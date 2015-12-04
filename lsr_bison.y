@@ -1,6 +1,7 @@
 %{
 #include "lsr_classes.hpp"
 #include <stdio.h>
+#include "gc/ggggc/gc.h"
 
 extern int yylex();
 void yyerror(char *s) {
@@ -14,6 +15,7 @@ LSRFunctionTable *functions;
 std::string intStr = "int";
 std::string strStr = "str";
 std::string currentClass = "";
+LSRScope *ptrScope;
 %}
 
 
@@ -48,9 +50,9 @@ std::string currentClass = "";
 %type <ident> ident
 %type <member> memberaccess
 %type <block> program maindef block
-%type <string> vartype
+%type <string> vartype cvartype
 %type <stmtnode> deferstmt deferprint deferassign while deferdecl
-%type <exprnode> cond deferexpr deferident defernumeric defermemberaccess
+%type <exprnode> cond deferexpr deferident defernumeric defermemberaccess deferstrlit
 %type <stmtlist> deferblock deferstmts
 
 
@@ -63,7 +65,19 @@ std::string currentClass = "";
 
 %%
 
-program: {curScope = new Scope(NULL); classes = new LSRClassTable();} classdefs maindef {programBlock = $3; delete curScope; delete classes;};
+program:{
+            curScope = new Scope(NULL); 
+            ptrScope = new LSRScope(NULL);
+            curScope->ptrScope = (&ptrScope);
+            classes = new LSRClassTable();
+        } 
+        classdefs maindef 
+        {
+            programBlock = $3; 
+            delete curScope; 
+            delete classes;
+            delete ptrScope;
+        };
 
 classdefs: classdef
          | classdefs classdef
@@ -83,7 +97,11 @@ cdecls  : cdecl TSEMICOLON
         | cdecls cdecl TSEMICOLON
         ;
 
-cdecl   : vartype ident {classes->addVar(currentClass,$2->getName(),*$1);};
+cdecl   : cvartype ident {classes->addVar(currentClass,$2->getName(),*$1);};
+
+cvartype : TINTTYPE {$$ = &intStr;}
+         | ident    {std::string temp = $1->getName(); $$ = new std::string(temp);};
+         ;
 
 maindef: TFNDEF TVOIDTYPE TMAIN TLPAREN TRPAREN block {$$ = $6;};
 
@@ -92,7 +110,8 @@ vartype : TINTTYPE {$$ = &intStr;}
         | ident    {std::string temp = $1->getName(); $$ = new std::string(temp);};
         ;
 
-block: {curScope = new Scope(curScope);} TLBRACE stmts TRBRACE {Scope *temp = curScope; curScope = curScope->getParent(); delete temp;};
+block: {curScope = new Scope(curScope); ptrScope = new LSRScope(ptrScope); setLSRScope(&ptrScope); } TLBRACE stmts TRBRACE {Scope *temp = curScope; curScope = curScope->getParent(); delete temp;
+         LSRScope *t = ptrScope; ptrScope = ptrScope->getParent(); delete t;};
 
 stmts: stmt TSEMICOLON
      | stmts stmt TSEMICOLON
@@ -104,11 +123,26 @@ stmt: decl
     | while {$1->execute(curScope,classes,functions);delete $1;}
     ;
 
-decl: vartype ident {curScope->decl($2->getName(), *$1, (void *)classes);}
+decl: vartype ident     
+    {
+        curScope->decl($2->getName(), *$1, (void *)classes);
+        LSRValue v = curScope->resolve($2->getName());
+        if (v.isClass()) {
+            ptrScope->addPtr($2->getName(),v.getObjectPointer());
+        }
+
+    }
     | vartype ident TEQUAL expr 
     {
         curScope->decl($2->getName(), *$1, (void *)classes);
         curScope->assign($2->getName(), $4->getVal(), (void *)classes);
+        // this decl is used for decls in the main scope only... these objects
+        // should never die until the program is over... because the way scope
+        // works is not enough to push where their objectptr is saved in the scope.
+        LSRValue v = curScope->resolve($2->getName());
+        if (v.isClass()) {
+            ptrScope->addPtr($2->getName(),v.getObjectPointer());
+        }
     }    
     ;
 
@@ -146,6 +180,7 @@ deferstmts: deferstmt TSEMICOLON {$$ = new StmtList(); $$->push_back($<stmtnode>
 deferstmt: deferprint {$$ = $1;}
          | deferassign {$$ = $1;}
          | deferdecl {$$ = $1;}
+         | while {$$=$1;}
          ;
 
 deferprint: TPRINT TLPAREN deferexpr TRPAREN {$$ = new printNode(*$3,0); /*delete $3;*/}
@@ -158,14 +193,13 @@ deferassign : deferident TEQUAL deferexpr {$$ = new assignNode(*$1,*$3);}
 
 deferdecl   : vartype ident 
             {std::string vname = $2->getName(); $$ = new declNode(vname, *$1); 
-             std::cout << "varname is " << vname << std::endl;
-             std::cout << "type is " << *$1 <<std::endl;
             };
 
 deferexpr: deferident {$$ = $1;}
          | defermemberaccess {$$ = $1;}
          | defernumeric {$$ = $1;}
          | deferexpr TPLUS deferexpr {$$ = new binaryExprNode(*$1, PLUS_OP, *$3); /*delete $1; delete $3;*/}
+         | deferstrlit {$$ = $1;}
          ;
 
 deferident : TID {$$ = new varNode(*$1); /*delete $1;*/};
@@ -178,8 +212,11 @@ defermemberaccess : ident TDOT ident
                         $$ = new memberNode($1->getName(), $3->getName());
                         delete $1; delete $3;
                     }
+                   ;
 
 defernumeric : TINT {$$ = new intNode(atol($1->c_str())); /*delete $1;*/}; 
+
+deferstrlit : TSTRINGLIT { $$ = new strNode(*$1);};
 
 expr: ident   {$$ = new LSRExpr(curScope->resolve($1->getName())); }
     | memberaccess {$$ = new LSRExpr(curScope->resolveMembers((void*) $1,(void *) classes));}
@@ -200,7 +237,8 @@ memberaccess : ident TDOT ident
                 $$ = new LSRMemberAccess($1->getName(), $3->getName());
                 delete $1; 
                 delete $3;
-             };
+             }
+             ;
 
 
 
