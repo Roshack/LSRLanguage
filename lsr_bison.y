@@ -33,6 +33,7 @@ LSRScope *ptrScope;
     exprNode *exprnode;
     stmtNode *stmtnode;
     whileNode *whilenode;
+    accessList *accesslist;
     StmtList *stmtlist;
 };
 
@@ -49,6 +50,7 @@ LSRScope *ptrScope;
 %type <stmt> stmt decl print assign
 %type <ident> ident
 %type <member> memberaccess
+%type <accesslist> accesses
 %type <block> program maindef block
 %type <string> vartype cvartype
 %type <stmtnode> deferstmt deferprint deferassign while deferdecl
@@ -149,7 +151,7 @@ decl: vartype ident
 assign: ident TEQUAL expr { curScope->assign($1->getName(), $3->getVal(),(void *)classes);}
       | memberaccess TEQUAL expr 
         {
-            curScope->memberAssign($1->getParent(),$1->getChild(), $3->getVal(), (void *)classes);
+            curScope->memberAssign($1, $3->getVal(), (void *)classes);
         }
       ;
 
@@ -235,10 +237,34 @@ ident : TID { $$ = new LSRIdent(*$1); delete $1; };
 memberaccess : ident TDOT ident 
              {
                 $$ = new LSRMemberAccess($1->getName(), $3->getName());
+                $$->list = NULL;
                 delete $1; 
                 delete $3;
              }
+             | ident TDOT ident accesses
+             {
+                $$ = new LSRMemberAccess($1->getName(), $3->getName());
+                delete $1; 
+                delete $3;
+                $$->list = $4;
+             }
              ;
+
+accesses    : TDOT ident
+            {
+                $$ = new accessList;
+                $$->id = $2->getName();
+                $$->next = NULL;
+                delete $2;
+            }
+            | TDOT ident accesses
+            {
+                $$ = new accessList;
+                $$->id = $2->getName();
+                delete $2;
+                $$->next = $3;
+            }
+            ;
 
 
 

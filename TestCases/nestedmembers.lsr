@@ -4,6 +4,6 @@ fn void main() {
     T a;
     a.val = 5;
     a.lhs.val = 6;
-    print(a.lhs.val);
+    println(a.lhs.val);
     
 }

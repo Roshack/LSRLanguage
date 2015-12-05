@@ -157,25 +157,36 @@ void Scope::assign(std::string id, LSRValue val,void *classDefs) {
     }
 }
 
-void Scope::memberAssign(std::string parent, std::string child, LSRValue val,void *classDefs) {
-    LSRValue v = resolve(parent);
+void Scope::memberAssign(LSRMemberAccess * m, LSRValue val,void *classDefs) {
+    LSRValue v = resolve(m->parent);
     LSRClassTable * classes = (LSRClassTable *) classDefs;
     if (!classes->contains(v.className)) {
-        std::cout << "Class : " << parent << " not yet defined in member assign" << std::endl;
+        std::cout << "Class : " << m->parent << " not yet defined in member assign" << std::endl;
         return;
     }
-    long unsigned int offSet = classes->getOffset(v.className,child);
-    std::string childType = classes->getType(v.className,child);
-    if (offSet) {
-        if (childType != val.getType()) {
-            std::cout << "Trying to assign invalid types in member assign" << std::endl;
+    long unsigned int offSet = classes->getOffset(v.className,m->child);
+    std::string curType = classes->getType(v.className,m->child);
+    ggc_size_t * curPointer = (ggc_size_t *) (*ptrScope)->resolve(m->getParent());
+    curPointer = curPointer + offSet;
+    accessList *iter = m->list;
+    while(iter) {
+        offSet = classes->getOffset(curType,iter->id);
+        if (offSet) {
+            curPointer = curPointer + offSet;
+            curType = classes->getType(curType, iter->id);
+            if(iter->next) {
+                // If there is a next we must be at an object.
+                //TODO actually make surew e're in an object!
+                curPointer = (ggc_size_t *)(*curPointer);
+            }
         }
-        ggc_size_t * objectPointer = (ggc_size_t *)v.objPtr;
-        objectPointer = objectPointer + offSet;
-        if (val.isInt()) {
-            (*objectPointer) = (ggc_size_t) val.getIntVal();
-        }
-        // TODO: Add string and object setting
+        iter = iter->next;
+    }
+    // here we should have objPointer as the final address of all the accesses.
+    if (val.isInt()) {
+        (*curPointer) = val.getIntVal();
+    } else if (val.isClass()) {
+        (*curPointer) = (ggc_size_t) val.getObjectPointer();
     }
 }
 
@@ -204,12 +215,30 @@ LSRValue Scope::resolveMembers(void * ma, void * ct) {
         } else {
             LSRClassTable * classTable = (LSRClassTable*) ct;
             std::string className = val.getType();
-            std::string memberType = classTable->getType(className,access->getChild());
+            std::string curType = classTable->getType(className,access->getChild());
             long unsigned int offSet = classTable->getOffset(className,access->getChild());
-            ggc_size_t * objPointer = (ggc_size_t*) (*ptrScope)->resolve(access->getParent());
-            if (!memberType.compare("int")) {
-                
-                return LSRValue(objPointer[offSet]);
+            ggc_size_t * curPointer = (ggc_size_t*) (*ptrScope)->resolve(access->getParent());
+            curPointer = curPointer + offSet;
+            accessList *iter = access->list;
+            while(iter) {
+                offSet = classTable->getOffset(curType,iter->id);
+                if (offSet) {
+                    curPointer = curPointer + offSet;
+                    curType = classTable->getType(curType, iter->id);
+                    if(iter->next) {
+                        // If there is a next we must be at an object.
+                        //TODO actually make surew e're in an object!
+                        curPointer = (ggc_size_t *)(*curPointer);
+                    }
+                }
+                iter = iter->next;
+            }
+            if (!curType.compare("int")) {
+                return LSRValue(*curPointer);
+            } else {
+                LSRValue v = getInitializedVal(curType);
+                v.objPtr = (void *) (*curPointer);
+                return v;
             }
             //TODO: stuff other than ints
         }
@@ -451,6 +480,7 @@ LSRValue nodeValue::toVal(Scope * scope, LSRClassTable * classDefs) {
         return scope->resolve(varName);
     } else if (type==NVMEMB) {
         LSRMemberAccess m = LSRMemberAccess(varName,memberName);
+        m.list = NULL;
         return scope->resolveMembers((void *) (&m), (void *) classDefs);
     } else {
         std::cout <<"type not defined for nodevalue" << std::endl;
@@ -514,6 +544,7 @@ nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunction
 
 nodeValue memberNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
     LSRMemberAccess *  ma = new LSRMemberAccess(varName,memberName);    
+    ma->list = NULL;
     LSRValue v = scope->resolveMembers((void*) ma, (void *) classDefs);
     nodeValue ret = nodeValue();
     if (!v.getType().compare("int")) {
@@ -534,8 +565,11 @@ nodeValue assignNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunct
     nodeValue l = lhs.execute(scope, classDefs,functions);
     nodeValue r = rhs.execute(scope,classDefs,functions);  
     if (lhs.isLValue()) {
-        if (lhs.isMember()) {         
-            scope->memberAssign(l.varName,l.memberName,r.toVal(scope,classDefs),(void *) classDefs);
+        if (lhs.isMember()) {    
+            LSRMemberAccess * temp = new LSRMemberAccess(l.varName,l.memberName);
+            temp->list = NULL;
+            scope->memberAssign(temp,r.toVal(scope,classDefs),(void *) classDefs);
+            delete temp;
         } else {
             scope->assign(l.varName,r.toVal(scope,classDefs),(void *) classDefs);
         }

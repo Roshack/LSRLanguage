@@ -31,7 +31,9 @@ class assignNode;
 class LSRFunctionTable;
 class LSRClassTable;
 class Scope;
+class LSRMemberAccess;
 class nodeValue;
+class accessList;
 
 class Scope;
 typedef std::vector<stmtNode*> StmtList;
@@ -126,10 +128,17 @@ public:
     std::string getName();
 };
 
+class accessList {
+public:
+    std::string id;
+    accessList * next;
+};
+
 class LSRMemberAccess : public LSRExpr {
 public:
     std::string parent;
     std::string child;
+    accessList * list;
     LSRMemberAccess(const std::string& p, const std::string& c);
     std::string getParent();
     std::string getChild();
@@ -171,7 +180,7 @@ public:
     Scope *getParent();
     void decl(std::string id, std::string type, void *classDefs);
     void assign(std::string id, LSRValue val, void *classDefs);
-    void memberAssign(std::string parent, std::string child, LSRValue val,void *classDefs);
+    void memberAssign(LSRMemberAccess *m, LSRValue val,void *classDefs);
     LSRValue resolveMembers(void * ma, void * ct);
     LSRValue resolve(std::string id);
 
