@@ -1,4 +1,10 @@
-
+*****************
+Language Name
+*****************
+Everybody knows that naming is the most important part of programming!
+I named my language LSR for two reasons:
+1. It is the first initials of my siblings and I in descending age order.
+2. In spoken language it can be referred to as LASER and thats cool.
 
 
 ***************
