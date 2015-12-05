@@ -206,15 +206,11 @@ deferexpr: deferident {$$ = $1;}
 
 deferident : TID {$$ = new varNode(*$1); /*delete $1;*/};
 
-defermemberaccess : ident TDOT ident 
+defermemberaccess : memberaccess
                     {
-                        // as I understand it I can (and should) use idents and not
-                        // deferidents here because i just need the strings the actaul
-                        // deferred work will be in the defered member access.
-                        $$ = new memberNode($1->getName(), $3->getName());
-                        delete $1; delete $3;
+                        $$ = new memberNode($1);
                     }
-                   ;
+                   ; 
 
 defernumeric : TINT {$$ = new intNode(atol($1->c_str())); /*delete $1;*/}; 
 

@@ -4,6 +4,16 @@ fn void main() {
     T a;
     a.val = 5;
     a.lhs.val = 6;
-    println(a.lhs.val);
+    a.rhs.val = 10;
+    T b;
+    b.lhs = a;
+    print(a.val);
+    println(" = 5");
+    print(a.lhs.val);
+    println( " = 6");
+    print(a.rhs.val);
+    println(" = 10");
+    print(b.lhs.val);
+    println( " = 5");
     
 }

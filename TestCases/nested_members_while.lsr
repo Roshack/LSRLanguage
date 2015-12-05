@@ -1,0 +1,14 @@
+class T{ T lhs; T rhs; int val;}
+
+fn void main() {
+    T a;
+    a.val = 0;  
+    while (a.val < 5) {
+        T b;
+        b.lhs = a;
+        println(b.lhs.val);
+        b.lhs.val = b.lhs.val + 1;
+    };
+    println(a.val);
+    
+}

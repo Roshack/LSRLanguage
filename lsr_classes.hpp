@@ -287,11 +287,10 @@ public:
 
 class memberNode : public exprNode {
 public:
-    std::string varName;
-    std::string memberName;
+    LSRMemberAccess * ma;
     int isLValue() {return 1;}
     int isMember() {return 1;}
-    memberNode(std::string v, std::string m) : varName(v), memberName(m) {}
+    memberNode(LSRMemberAccess *m) : ma(m) {}
     nodeValue execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions);
 };
 

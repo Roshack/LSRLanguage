@@ -170,15 +170,13 @@ void Scope::memberAssign(LSRMemberAccess * m, LSRValue val,void *classDefs) {
     curPointer = curPointer + offSet;
     accessList *iter = m->list;
     while(iter) {
+        // If we're continuuing down a member access this must be a class. 
+        // so we need to go to the locations pointed to by our current place.
+        curPointer =  (ggc_size_t *)(*curPointer);
         offSet = classes->getOffset(curType,iter->id);
         if (offSet) {
             curPointer = curPointer + offSet;
             curType = classes->getType(curType, iter->id);
-            if(iter->next) {
-                // If there is a next we must be at an object.
-                //TODO actually make surew e're in an object!
-                curPointer = (ggc_size_t *)(*curPointer);
-            }
         }
         iter = iter->next;
     }
@@ -208,7 +206,7 @@ LSRValue Scope::resolve(std::string id) {
 LSRValue Scope::resolveMembers(void * ma, void * ct) {
     LSRMemberAccess * access = (LSRMemberAccess*) ma;
     if (st.contains(access->getParent())) {
-        LSRValue val = st.get(access->getParent());
+        LSRValue val = resolve(access->getParent());
         if (!val.isClass()) {
             std::cout <<"Trying to member access variable: " << access->getParent() << " that is of type " << val.getType() << std::endl;
             return LSRValue (0);
@@ -221,20 +219,17 @@ LSRValue Scope::resolveMembers(void * ma, void * ct) {
             curPointer = curPointer + offSet;
             accessList *iter = access->list;
             while(iter) {
+                curPointer = (ggc_size_t *)(*curPointer);
                 offSet = classTable->getOffset(curType,iter->id);
                 if (offSet) {
                     curPointer = curPointer + offSet;
                     curType = classTable->getType(curType, iter->id);
-                    if(iter->next) {
-                        // If there is a next we must be at an object.
-                        //TODO actually make surew e're in an object!
-                        curPointer = (ggc_size_t *)(*curPointer);
-                    }
                 }
                 iter = iter->next;
             }
             if (!curType.compare("int")) {
-                return LSRValue(*curPointer);
+                LSRValue retVal = LSRValue((*curPointer));         
+                return LSRValue((*curPointer));
             } else {
                 LSRValue v = getInitializedVal(curType);
                 v.objPtr = (void *) (*curPointer);
@@ -317,6 +312,18 @@ void * SymbolTable::getDescriptorPointer() {
 void * SymbolTable::createInMemory(std::string id,void * classDefs) {
     LSRValue v = symMap[id];
     symMap[id].objPtr = v.createInMemory(classDefs);
+    LSRClassTable *classD = (LSRClassTable *) classDefs;
+    SymbolTable classTable = classD->classDefs[v.getType()];
+    std::map<std::string, LSRValue>::iterator it = classTable.symMap.begin();
+    ggc_size_t * objectPointer = (ggc_size_t *) symMap[id].objPtr;
+    int x = 1;
+    while(it != classTable.symMap.end()) {
+        if ((it->second).isClass()) {
+            objectPointer[x] = (ggc_size_t) (it->second).createInMemory(classDefs);
+        }
+        x++;
+        it++;
+    }
     return symMap[id].objPtr;
 }
 
@@ -543,8 +550,6 @@ nodeValue varNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunction
 }
 
 nodeValue memberNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunctionTable * functions){
-    LSRMemberAccess *  ma = new LSRMemberAccess(varName,memberName);    
-    ma->list = NULL;
     LSRValue v = scope->resolveMembers((void*) ma, (void *) classDefs);
     nodeValue ret = nodeValue();
     if (!v.getType().compare("int")) {
@@ -554,10 +559,10 @@ nodeValue memberNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunct
         ret.st = v.getStrVal();
         ret.strLen = 0;
         ret.type = NVSTR;
+    } else {
+        ret.objPtr = v.getObjectPointer();
+        ret.type = NVVAR;
     }
-    ret.varName = varName;
-    ret.memberName = memberName;
-    delete ma;
     return ret;
 }
 
@@ -565,11 +570,11 @@ nodeValue assignNode::execute(Scope * scope, LSRClassTable * classDefs, LSRFunct
     nodeValue l = lhs.execute(scope, classDefs,functions);
     nodeValue r = rhs.execute(scope,classDefs,functions);  
     if (lhs.isLValue()) {
-        if (lhs.isMember()) {    
-            LSRMemberAccess * temp = new LSRMemberAccess(l.varName,l.memberName);
-            temp->list = NULL;
-            scope->memberAssign(temp,r.toVal(scope,classDefs),(void *) classDefs);
-            delete temp;
+        if (lhs.isMember()) {
+            // safe to downcast... if isMember() is true then it must be a memberNode.
+            memberNode& cast = static_cast<memberNode&>(lhs);
+            scope->memberAssign(cast.ma,r.toVal(scope,classDefs),(void *) classDefs);
+
         } else {
             scope->assign(l.varName,r.toVal(scope,classDefs),(void *) classDefs);
         }
