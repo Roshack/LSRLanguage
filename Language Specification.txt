@@ -11,6 +11,8 @@ Vartypes for classes: int, classnames. Strings not allowed in classes!
 
 ***************
 function definition
+
+FUNCTIONS NOT YET IN :(
 ***************
 fn <fntype> <name>() {
     <stmts>
@@ -60,4 +62,15 @@ CONDITIONS
 **********
 <expr> conditionalOp <expr>
 Allowed conditional operators: <
+
+**********
+Expressions
+**********
+<varname>
+<varname>.<varname>... (keep member accessing as long as it's valid)
+IntegerLiteral
+StringLiteral
+(<expr>) 
+
+
 

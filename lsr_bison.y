@@ -202,6 +202,7 @@ deferexpr: deferident {$$ = $1;}
          | defernumeric {$$ = $1;}
          | deferexpr TPLUS deferexpr {$$ = new binaryExprNode(*$1, PLUS_OP, *$3); /*delete $1; delete $3;*/}
          | deferstrlit {$$ = $1;}
+         | TLPAREN deferexpr TRPAREN {$$ = $2;}
          ;
 
 deferident : TID {$$ = new varNode(*$1); /*delete $1;*/};
