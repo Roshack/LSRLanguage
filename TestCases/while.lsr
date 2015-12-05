@@ -1,6 +1,6 @@
 class T {int x; int y;}
 
-fn void main() {
+fnmain void main() {
     T z;
     z.x = 0;
     str a = " ";

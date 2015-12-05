@@ -115,6 +115,7 @@ void * cleanForwardAddress(void * x);
 void ggggc_process(void * x);
 
 void setLSRScope(LSRScope **s);
+void setFnScope(LSRScope **s);
 
 
 /* GC pool (forms a list) */

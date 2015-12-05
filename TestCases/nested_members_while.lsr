@@ -1,6 +1,6 @@
 class T{ T lhs; T rhs; int val;}
 
-fn void main() {
+fnmain void main() {
     T a;
     a.val = 0;  
     while (a.val < 5) {

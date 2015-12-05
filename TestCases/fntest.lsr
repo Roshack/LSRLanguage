@@ -1,0 +1,10 @@
+fn void lol(int x) {
+    println(x);
+}
+
+class T {int x; int y;}
+
+fnmain void main() {
+    int z = 5;
+    lol(z);
+}

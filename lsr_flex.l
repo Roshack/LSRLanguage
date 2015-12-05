@@ -13,6 +13,7 @@ extern "C" int yywrap() { }
 "print"                 return TOKEN(TPRINT);
 "println"               return TOKEN(TPRINTLN);
 "fn"                    return TOKEN(TFNDEF);
+"fnmain"                return TOKEN(TFNMAIN);
 "int"                   return TOKEN(TINTTYPE);
 "str"                   return TOKEN(TSTRTYPE);
 "void"                  return TOKEN(TVOIDTYPE);
@@ -34,6 +35,7 @@ extern "C" int yywrap() { }
 "}"                     return TOKEN(TRBRACE);
 ";"                     return TOKEN(TSEMICOLON);
 "."                     return TOKEN(TDOT);
+","                     return TOKEN(TCOMMA);
 L?\"(\\.|[^\\"])*\"	    SAVE_TOKEN; return TSTRINGLIT;
 \n
 \t 

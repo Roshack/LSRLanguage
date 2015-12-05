@@ -30,9 +30,14 @@ extern "C" {
 
 
 extern LSRScope ** lsrScope;
+extern LSRScope ** fnGCScope;
 
 void setLSRScope(LSRScope **s) {
     lsrScope = s;
+}
+
+void setFnScope(LSRScope **s) {
+    fnGCScope = s;
 }
 
 struct StackLL 
@@ -94,6 +99,8 @@ void ggggc_collect()
         ggggc_curPool = ggggc_curPool->next;
     }
     ggggc_curPool = ggggc_fromList;
+    /* with LSR ggggcs pointer stack actaully only holds descriptor pointers that
+       got globalized because I couldnt' figure out how to work with it nicely */
     while (stack_iter) {
         ggc_size_t *** ptrptr = (ggc_size_t ***) stack_iter->pointers;
         ggc_size_t ptrIter = 0;
@@ -106,9 +113,31 @@ void ggggc_collect()
         }
         stack_iter = stack_iter->next;
     }
+    /* lsrScope and fnScope point to two stack like objects that LSR
+       basically uses as its stack (and by that I mean it uses them as a
+       place to put its object pointers that ggggc can also access easily) */
+    /* lsrScope is the scope of the current execution of the main function
+       while fnScope is the scope  of the currently executing function call.
+       the reason to not just 'scope down' the lsrScope like you would for going
+       down into a while block is so that if variable x is defined in main but not
+       in the function you can't try and access x without me having to do any
+       extra work.
+
+       Its worth nothing (*fnScope) will be null when not in a function call! */
+
     LSRScope * scopeIter = (*lsrScope);
     while (scopeIter != NULL) {
         std::map<std::string,void *> ptrs = (*lsrScope)->ptrs;
+        std::map<std::string,void *>::iterator iter = ptrs.begin();
+        while (iter != ptrs.end()) {
+            ggggc_process(&(iter->second));
+            iter++;
+        }
+        scopeIter = scopeIter->getParent();
+    }
+    scopeIter = (*fnGCScope);
+    while (scopeIter != NULL) {
+        std::map<std::string,void *> ptrs = (*fnGCScope)->ptrs;
         std::map<std::string,void *>::iterator iter = ptrs.begin();
         while (iter != ptrs.end()) {
             ggggc_process(&(iter->second));

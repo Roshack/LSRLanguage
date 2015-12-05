@@ -1,6 +1,6 @@
 class T{ T lhs; T rhs; int val;}
 
-fn void main() {
+fnmain void main() {
     T a;
     a.val = 5;
     a.lhs.val = 6;

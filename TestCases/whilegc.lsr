@@ -1,6 +1,6 @@
 class T {int x; int y;}
 
-fn void main() {
+fnmain void main() {
     T b;
     int x;
     x = 0;

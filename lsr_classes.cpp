@@ -452,6 +452,21 @@ std::string LSRClassTable::getType(std::string classname, std::string member) {
     return ret;
 }
 
+void LSRFunctionTable::add(std::string fnName, std::vector<LSRParam*>* params, StmtList * stmts) {
+    fns[fnName] = new StmtList;
+    StmtList::iterator st = stmts->begin();
+    while (st != stmts->end()) {
+        fns[fnName]->push_back(*st);
+        st++;
+    }
+    fnParams[fnName] = std::vector<LSRParam*>();
+    std::vector<LSRParam*>::iterator it = (*params).begin();
+    while (it != params->end()) {
+        fnParams[fnName].push_back(*it);
+        it++;
+    }
+}
+
 /*
 *
 *

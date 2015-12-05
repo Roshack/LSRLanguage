@@ -40,6 +40,8 @@ typedef std::vector<stmtNode*> StmtList;
 typedef std::vector<exprNode*> ExprList;
 typedef std::vector<declNode*> VarList;
 
+typedef std::vector<LSRExpr*> argList;
+
 enum BinaryOp {
 PLUS_OP,
 MINUS_OP,
@@ -89,6 +91,13 @@ public:
     void * getObjectPointer();
     int operator<(const LSRValue &rhs);
 
+};
+
+class LSRParam {
+public:
+    std::string varName;
+    std::string varType;
+    LSRParam(std::string &n, std::string& t) : varName(n), varType(t) {}
 };
 
 class Node {
@@ -177,6 +186,7 @@ public:
     LSRScope ** ptrScope;
     Scope(Scope *p);
     int isTopLevel();
+    int fnCallCount;
     Scope *getParent();
     void decl(std::string id, std::string type, void *classDefs);
     void assign(std::string id, LSRValue val, void *classDefs);
@@ -202,6 +212,10 @@ public:
 };
 
 class LSRFunctionTable {
+public:
+    std::map<std::string,StmtList *> fns;
+    std::map<std::string,std::vector<LSRParam*> > fnParams;
+    void add(std::string fnName, std::vector<LSRParam*>* params, StmtList * stmts);
 
 };
 

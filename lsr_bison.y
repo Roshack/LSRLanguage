@@ -16,6 +16,9 @@ std::string intStr = "int";
 std::string strStr = "str";
 std::string currentClass = "";
 LSRScope *ptrScope;
+LSRScope *fnPtrScope;
+Scope *fnScope;
+int fnCallCount;
 %}
 
 
@@ -35,6 +38,9 @@ LSRScope *ptrScope;
     whileNode *whilenode;
     accessList *accesslist;
     StmtList *stmtlist;
+    LSRParam * param;
+    argList *args;
+    std::vector<LSRParam*> * paramlist;
 };
 
 
@@ -44,10 +50,10 @@ LSRScope *ptrScope;
 %token <token> TPLUS TMINUS TMUL TDIV
 %token <token> TLT TGT
 %token <token> TPRINT TPRINTLN
-%token <token> TVOIDTYPE TFNDEF TMAIN TSEMICOLON TCLASS TDOT TWHILE
+%token <token> TVOIDTYPE TFNDEF TMAIN TSEMICOLON TCLASS TDOT TWHILE TCOMMA TFNMAIN
 
 %type <expr> expr numeric strliteral
-%type <stmt> stmt decl print assign
+%type <stmt> stmt decl print assign fncall
 %type <ident> ident
 %type <member> memberaccess
 %type <accesslist> accesses
@@ -55,6 +61,9 @@ LSRScope *ptrScope;
 %type <string> vartype cvartype
 %type <stmtnode> deferstmt deferprint deferassign while deferdecl
 %type <exprnode> cond deferexpr deferident defernumeric defermemberaccess deferstrlit
+%type <paramlist> params
+%type <param> param
+%type <args> arglist
 %type <stmtlist> deferblock deferstmts
 
 
@@ -71,15 +80,46 @@ program:{
             curScope = new Scope(NULL); 
             ptrScope = new LSRScope(NULL);
             curScope->ptrScope = (&ptrScope);
+            fnPtrScope = new LSRScope(NULL);
+            fnScope = new Scope(NULL);
+            fnScope->ptrScope = (&fnPtrScope);
+            fnScope->fnCallCount = 0;
+            setLSRScope(&ptrScope);
+            setFnScope(&fnPtrScope);
             classes = new LSRClassTable();
+            functions = new LSRFunctionTable;
         } 
-        classdefs maindef 
+        fndefs classdefs maindef 
         {
-            programBlock = $3; 
+            programBlock = $4; 
             delete curScope; 
             delete classes;
             delete ptrScope;
         };
+
+fndefs : fndef
+       | fndefs fndef
+       |
+       ;
+
+fndef   : TFNDEF TVOIDTYPE ident TLPAREN params TRPAREN deferblock
+        {
+            StmtList *temp = new StmtList;
+            StmtList::iterator it = $7->begin();
+            while (it != $7->end()) {
+                temp->push_back(*it);
+                it++;
+            }
+            functions->add($3->getName(),$5,temp);
+        }
+        ;
+
+params  : param {$$ = new std::vector<LSRParam*>(); $$->push_back($1); }
+        | params TCOMMA param {$$ = $1; $$->push_back($3);}
+        | {$$ = new std::vector<LSRParam*>();}
+        ;
+
+param   : vartype ident {std::string temp = $2->getName();$$ = new LSRParam(temp, *$1);} ;
 
 classdefs: classdef
          | classdefs classdef
@@ -105,7 +145,7 @@ cvartype : TINTTYPE {$$ = &intStr;}
          | ident    {std::string temp = $1->getName(); $$ = new std::string(temp);};
          ;
 
-maindef: TFNDEF TVOIDTYPE TMAIN TLPAREN TRPAREN block {$$ = $6;};
+maindef: TFNMAIN TVOIDTYPE TMAIN TLPAREN TRPAREN block {$$ = $6;};
 
 vartype : TINTTYPE {$$ = &intStr;}
         | TSTRTYPE {$$ = &strStr;}
@@ -123,7 +163,40 @@ stmt: decl
     | print
     | assign
     | while {$1->execute(curScope,classes,functions);delete $1;}
+    | fncall
     ;
+
+fncall : ident TLPAREN arglist TRPAREN
+       {
+            std::vector<LSRParam*> params = functions->fnParams[$1->getName()];
+            fnCallCount++;
+            fnScope = new Scope(fnScope);
+            fnScope->fnCallCount = fnCallCount;
+            std::vector<LSRParam*>::iterator it = params.begin();
+            argList::iterator at = $3->begin();
+            while ( it != params.end()) {
+                if (at == $3->end()) {
+                    std::cout << "mismatched nubmer of params and args for function " << $1->getName() << std::endl;
+                }
+                fnScope->decl((*it)->varName,(*it)->varType, classes);
+                fnScope->assign((*it)->varName, (*at)->getVal(),classes);
+                it++;
+                at++;
+            }
+            // done setting up scopes...
+            StmtList::iterator st = functions->fns[$1->getName()]->begin();
+            while (st != functions->fns[$1->getName()]->end()) {
+                (*st)->execute(fnScope,classes,functions);
+                st++;
+            }
+            
+       }
+       ;
+
+arglist : expr {$$ = new argList; $$->push_back($1);}
+        | arglist TCOMMA expr {$$ = $1; $$->push_back($3);}
+        | {$$ = new argList;}
+        ;
 
 decl: vartype ident     
     {

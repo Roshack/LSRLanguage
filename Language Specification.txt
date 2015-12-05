@@ -6,6 +6,24 @@ I named my language LSR for two reasons:
 1. It is the first initials of my siblings and I in descending age order.
 2. In spoken language it can be referred to as LASER and thats cool.
 
+****************
+Important Notes
+****************
+The interpreter is bad. It doesn't type check most of the time and even when
+it does it just prints out a statement yelling at you but keeps on running.
+Unfortunately the onus is on the programmer not do a lot of bad things like
+assign between types, or try and access a member variable that doesn't have that
+member, or instantiate a varaible with a class that isn't defined.
+
+I'm sorry :S
+
+*************************
+Why I deserve some marks
+*************************
+The language DOES actually allocate objects using the GC and the GC does actually correctly revoke objects! A good test of this is the whilegc.lsr or nestwhilegc.lsr
+
+So in that sense despite not having a lot of things I wish I had or should have, I did at least create an interpreter for a garbage collected language ^_^
+
 
 ***************
 Object Definition
@@ -18,18 +36,26 @@ Vartypes for classes: int, classnames. Strings not allowed in classes!
 ***************
 function definition
 
-FUNCTIONS NOT YET IN :(
+functions can only be void :(
 ***************
-fn <fntype> <name>() {
+fn void <name>(<paramlist>) {
     <stmts>
 }
 
 <fntype> can be void or int.
+<paramlist> is a list of <vartype> <varname> pairs seperated by commas.
+
+
+UNFORTUNATELY: functions don't work recursively. I didn't have time to add this,
+and the reason its different than non recursive fucnctions is because I completely
+forgot how to build an interpreter for the first half of this project until I got
+to while loops and realized I needed some way of storing 'code' to be executed at
+a later point. Blah.
 
 ***************
 Main definition
 ***************
-fn void main() {
+fnmain void main() {
     <statements>
 }
 
@@ -69,6 +95,8 @@ CONDITIONS
 <expr> conditionalOp <expr>
 Allowed conditional operators: <
 
+yeah... only less than... I'm sorry...
+
 **********
 Expressions
 **********
@@ -77,6 +105,7 @@ Expressions
 IntegerLiteral
 StringLiteral
 (<expr>) 
+<expr> + <expr>
 
 
 
