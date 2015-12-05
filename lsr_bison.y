@@ -230,7 +230,7 @@ numeric : TINT { $$ = new LSRInt(atol($1->c_str())); delete $1; } ;
 
 strliteral: TSTRINGLIT { $$ = new LSRStr(*$1); delete $1; } ;
 
-ident : TID { $$ = new LSRIdent(*$1); delete $1; }
+ident : TID { $$ = new LSRIdent(*$1); delete $1; };
 
 memberaccess : ident TDOT ident 
              {
