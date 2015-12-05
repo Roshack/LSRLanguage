@@ -189,7 +189,9 @@ fncall : ident TLPAREN arglist TRPAREN
                 (*st)->execute(fnScope,classes,functions);
                 st++;
             }
-            
+            Scope * temp = fnScope;
+            fnScope = fnScope->getParent();
+            delete temp;
        }
        ;
 
